@@ -1,70 +1,128 @@
+import Basic
 import Console
-import libc
+import Command
+import PackageGraph
+import PackageLoading
+import Foundation
+import Workspace
 
-public final class Update: Command {
-    public let id = "update"
+/// Updates a Vapor Xcode Project after adding dependencies or changing file structure.
+public final class UpdateCommand: Command {
+    /// See Command.arguments
+    public let arguments: [Argument]
 
-    public let signature: [Argument] = [
-        Option(name: "xcode", help: ["Removes any Xcode projects while cleaning."])
-    ]
+    /// See Command.options
+    public let options: [Option]
 
-    public let help: [String] = [
-        "Updates your dependencies."
-    ]
+    /// See Command.help
+    public var help: [String]
 
-    public let console: ConsoleProtocol
-
-    public init(console: ConsoleProtocol) {
-        self.console = console
+    /// Create a new Update Command.
+    public init() {
+        arguments = []
+        options = [
+            .init(name: "workDir", help: [
+                "Override the working directory used for this command."
+            ], default: nil)
+        ]
+        help = [
+            "Updates a Vapor Xcode Project after adding dependencies or changing the file structure.",
+            "Automatically fetches new or modified dependencies, re-generates, and opens .xcodeproj."
+        ]
     }
 
-    public func run(arguments: [String]) throws {
-        try checkGitUpstream()
+    /// See Command.run
+    public func run(using console: Console, with input: Input) throws {
+        let workDir = input.options["workDir"].flatMap(AbsolutePath.init) ?? currentWorkingDirectory
 
-        let isVerbose = arguments.isVerbose
-        let bar = console.loadingBar(title: "Updating", animated: !isVerbose)
-        bar.start()
-        try console.execute(verbose: isVerbose, program: "swift", arguments: ["package", "update"])
-        bar.finish()
+        let manifestLoader = ManifestLoader(
+            resources: self,
+            isManifestSandboxEnabled: false
+        )
 
-        #if !os(Linux)
-            console.info("Changes to dependencies usually require Xcode to be regenerated.")
-            let shouldGenerateXcode = console.confirm("Would you like to regenerate your xcode project now?")
-            guard shouldGenerateXcode else { return }
-            let xcode = Xcode(console: console)
-            try xcode.run(arguments: arguments)
-        #endif
-    }
+        let workspace = Workspace(
+            dataPath: workDir.appending(component: ".build"),
+            editablesPath: workDir.appending(component: "Packages"),
+            pinsFile: workDir.appending(component: "Package.resolved"),
+            manifestLoader: manifestLoader,
+            delegate: self
+        )
 
-    func checkGitUpstream() throws {
-        guard gitInfo.isGitProject() else { return }
-        let currentBranch = try gitInfo.currentBranch()
-        
-        if let upstream = try? gitInfo.upstreamBranch() {
-            try gitInfo.verify(
-                local: currentBranch,
-                remote: upstream.remote,
-                upstream: upstream.branch
-            )
-        } else {
-            let remotes = try gitInfo.remoteNames()
-            let remote: String
-            if remotes.isEmpty {
-                return
-            } else if remotes.count == 1 {
-                remote = remotes[0]
-            } else if remotes.contains("origin") {
-                remote = "origin"
-            } else {
-                remote = try console.giveChoice(
-                    title: "Which remote are you tracking for '\(currentBranch)'?",
-                    in: remotes
-                )
-            }
-            try gitInfo.verify(
-                local: currentBranch,
-                remote: remote
-            )
+        let packageRoot = PackageGraphRootInput(packages: [
+            workDir
+        ])
+
+        let diagnostics = DiagnosticsEngine()
+        workspace.updateDependencies(
+            root: packageRoot,
+            diagnostics: diagnostics
+        )
+
+        for diag in diagnostics.diagnostics {
+            console.output("[ \(diag.behavior) ] ", style: diag.behavior.style, newLine: false)
+            console.print(diag.localizedDescription)
         }
     }
+}
+
+extension Diagnostic.Behavior {
+    var style: ConsoleStyle {
+        switch self {
+        case .error: return .error
+        case .ignored: return .plain
+        case .note: return .info
+        case .warning: return .warning
+        }
+    }
+}
+
+extension UpdateCommand: WorkspaceDelegate {
+    public func packageGraphWillLoad(currentGraph: PackageGraph, dependencies: AnySequence<ManagedDependency>, missingURLs: Set<String>) {
+        print("\(#function)")
+    }
+
+    public func fetchingWillBegin(repository: String) {
+        print("\(#function)")
+    }
+
+    public func fetchingDidFinish(repository: String, diagnostic: Diagnostic?) {
+        print("\(#function)")
+    }
+
+    public func cloning(repository: String) {
+        print("\(#function)")
+    }
+
+    public func removing(repository: String) {
+        print("\(#function)")
+    }
+
+    public func managedDependenciesDidUpdate(_ dependencies: AnySequence<ManagedDependency>) {
+        print("\(#function)")
+    }
+
+
+}
+
+extension UpdateCommand: ManifestResourceProvider {
+    public var swiftCompiler: AbsolutePath {
+        return .init("/usr/bin/swift")
+    }
+
+    public var libDir: AbsolutePath {
+        return .init("/usr/lib")
+    }
+
+    public var sdkRoot: AbsolutePath? {
+        return .init("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk")
+    }
+}
+
+/// The current working directory of the process (same as returned by POSIX' `getcwd()` function or Foundation's
+/// `currentDirectoryPath` method).
+/// FIXME: This should probably go onto `FileSystem`, under the assumption that each file system has its own notion of
+/// the `current` working directory.
+fileprivate var currentWorkingDirectory: AbsolutePath {
+    let cwdStr = FileManager.default.currentDirectoryPath
+    return AbsolutePath(cwdStr)
 }

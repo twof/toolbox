@@ -1,27 +1,37 @@
+// swift-tools-version:4.0
 import PackageDescription
 
 let package = Package(
     name: "VaporToolbox",
-    targets: [
-        Target(name: "VaporToolbox", dependencies: ["Cloud", "Shared"]),
-        Target(name: "Executable", dependencies: ["VaporToolbox"]),
-        Target(name: "Cloud", dependencies: ["Shared"]),
-        Target(name: "Shared"),
+    products: [
+        .executable(name: "vapor", targets: ["Executable"]),
+        .library(name: "VaporToolbox", targets: ["VaporToolbox"]),
     ],
     dependencies: [
-        // Vapor Cloud clients.
-        .Package(url: "git@github.com:vapor-cloud/clients.git", majorVersion: 0),
-        
-        // Core console protocol.
-        .Package(url: "https://github.com/vapor/console.git", majorVersion: 2),
-        
-        // JSON parsing / serializing.
-        .Package(url: "https://github.com/vapor/json.git", majorVersion: 2),
-        
-        // Vapor web framework.
-        .Package(url: "https://github.com/vapor/vapor.git", majorVersion: 2),
-        
-        // Redis
-        .Package(url: "https://github.com/vapor/redis.git", majorVersion: 2)
+        // Swift Promises, Futures, and Streams.
+        .package(url: "https://github.com/vapor/async.git", .branch("beta")),
+
+        // Swift wrapper for Console I/O.
+        .package(url: "https://github.com/vapor/console.git", .branch("beta")),
+
+        // Core extensions, type-aliases, and functions that facilitate common tasks.
+        .package(url: "https://github.com/vapor/core.git", .branch("beta")),
+
+        // Cryptography modules
+        .package(url: "https://github.com/vapor/crypto.git", .branch("beta")),
+
+        // Non-blocking networking for Swift (HTTP and WebSockets).
+        .package(url: "https://github.com/vapor/engine.git", .branch("beta")),
+
+        // The Package Manager for the Swift Programming Language
+        .package(url: "https://github.com/apple/swift-package-manager.git", .branch("master")),
+    ],
+    targets: [
+        // Executable
+        .target(name: "Executable", dependencies: ["Console", "VaporToolbox"]),
+
+        // Toolbox
+        .target(name: "VaporToolbox", dependencies: ["Console", "Command", "SwiftPM"]),
+        .testTarget(name: "VaporToolboxTests", dependencies: ["VaporToolbox"]),
     ]
 )
