@@ -1,3 +1,6 @@
+setup:
+	brew install ninja
+	brew install cmake
 bootstrap:
 	rm -rf .bootstrap
 	mkdir .bootstrap
@@ -23,6 +26,7 @@ xcode:
 	-Xlinker -F.bootstrap/swiftpm/.build/release/llbuild/lib/ \
 	-Xswiftc -F.bootstrap/swiftpm/.build/release/llbuild/lib/ \
 	generate-xcodeproj
+	open *.xcodeproj
 vapor3: build
 	rm -rf /usr/local/bin/vapor3
 	ln -s ${PWD}/.build/debug/Executable /usr/local/bin/vapor3
