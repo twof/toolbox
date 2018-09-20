@@ -12,10 +12,12 @@ let package = Package(
     ],
     targets: [
         .target(name: "clibc"),
+        .target(name: "Commands", dependencies: ["clibc"]),
         
         // All of the commands and logic that powers the Vapor toolbox
         .target(name: "VaporToolbox", dependencies: [
 //            "SwiftPM",
+            "Commands",
             "clibc",
             "Vapor"
         ]),

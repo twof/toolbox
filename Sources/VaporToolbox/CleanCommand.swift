@@ -8,6 +8,8 @@ struct CleanCommand: Command {
 
     /// See `Command`.
     var options: [CommandOption] = [
+        // f - force (clears edited packages)
+        // x - regen xcode
         .flag(name: "update", short: "u", help: [
             "Cleans the Package.resolved file if it exists",
             "This is equivalent to doing `swift package update`"
