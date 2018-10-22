@@ -7,9 +7,9 @@ extension TestConsole {
         let console = TestConsole()
 
         // swift commands
-        console.backgroundExecuteOutputBuffer["swift package --enable-prefetching fetch"] = ""
-        console.backgroundExecuteOutputBuffer["swift package fetch"] = ""
-        console.backgroundExecuteOutputBuffer["swift build --enable-prefetching"] = ""
+        console.backgroundExecuteOutputBuffer["swift package resolve"] = ""
+        console.backgroundExecuteOutputBuffer["swift package resolve"] = ""
+        console.backgroundExecuteOutputBuffer["swift build"] = ""
         console.backgroundExecuteOutputBuffer["swift build"] = ""
 
         console.backgroundExecuteOutputBuffer["swift package dump-package"] = try! JSON(["name": "Hello"]).serialize().makeString()
@@ -52,8 +52,8 @@ class BuildTests: XCTestCase {
         XCTAssertEqual(console.executeBuffer, [
             "ls -a .",
             "ls -a .",
-            "swift package --enable-prefetching fetch",
-            "swift build --enable-prefetching",
+            "swift package resolve",
+            "swift build",
             ])
     }
 
@@ -70,8 +70,8 @@ class BuildTests: XCTestCase {
             "rm -rf .build",
             "ls -a .",
             "ls -a .",
-            "swift package --enable-prefetching fetch",
-            "swift build --enable-prefetching",
+            "swift package resolve",
+            "swift build",
             ])
     }
 
@@ -89,8 +89,8 @@ class BuildTests: XCTestCase {
         XCTAssertEqual(console.executeBuffer, [
             "ls -a .",
             "ls -a .",
-            "swift package --enable-prefetching fetch",
-            "swift build --enable-prefetching",
+            "swift package resolve",
+            "swift build",
             "ls .build/debug",
             "find ./Sources -type f -name main.swift",
             "ls .build/debug/Hello",
